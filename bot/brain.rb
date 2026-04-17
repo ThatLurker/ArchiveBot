@@ -2,6 +2,7 @@ require 'addressable/uri'
 
 require File.expand_path('../../lib/job', __FILE__)
 require File.expand_path('../../lib/pipeline_info', __FILE__)
+require File.expand_path('../../lib/pipeline_collection', __FILE__)
 require File.expand_path('../summary', __FILE__)
 require File.expand_path('../post_registration_hook', __FILE__)
 require File.expand_path('../add_ignore_sets', __FILE__)
@@ -88,6 +89,14 @@ class Brain
     if h[:large] && (h[:pipeline] || depth == :shallow)
       reply m, '--large has no effect when combined with --pipeline or !ao.'
       return
+    end
+
+    # Is there any suitable running --pipeline?
+    if h[:pipeline]
+      if !PipelineCollection.new(redis).any? { |pipeline| pipeline['nickname'].include?(h[:pipeline]) && pipeline['status'] == 'Running' }
+        reply m, "Sorry, there is no running pipeline that matches --pipeline #{h[:pipeline]}."
+        return
+      end
     end
 
     # Is the URI in our list of recognized schemes?
